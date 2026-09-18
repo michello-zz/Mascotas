@@ -10,10 +10,12 @@ export function PetAcciones({
   petId,
   nombre,
   isLost,
+  telefono,
 }: {
   petId: number
   nombre: string
   isLost: boolean
+  telefono?: string | null
 }) {
   const [perdidaState, accionPerdida, perdidaPending] = useActionState(marcarPerdida, inicial)
   const [okState, accionOk, okPending] = useActionState(marcarEncontrada, inicial)
@@ -25,11 +27,18 @@ export function PetAcciones({
       {!isLost ? (
         <>
           {!mostrarFormPerdida ? (
-            <button type="button" className="btn-primary" onClick={() => setMostrarFormPerdida(true)}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setMostrarFormPerdida(true)}
+            >
               Reportar como perdida
             </button>
           ) : (
-            <form action={accionPerdida} className="grid gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <form
+              action={accionPerdida}
+              className="grid gap-2 rounded-lg border border-red-200 bg-red-50 p-3"
+            >
               <input type="hidden" name="id" value={petId} />
               <label className="label" htmlFor={`lostComment-${petId}`}>
                 Comentario de cómo contactarte *
@@ -40,17 +49,26 @@ export function PetAcciones({
                 rows={3}
                 required
                 className="input"
-                placeholder="Ej: llamame al 099 123 456, vive cerca de la plaza, es miedosa"
+                defaultValue={
+                  telefono
+                    ? `Si la encontrás, llamame o mandame WhatsApp al ${telefono}. `
+                    : ''
+                }
               />
               <p className="text-xs text-red-800">
-                Esto es lo que va a ver quien la encuentre en el listado público.
+                ⚠️ Esto es lo único que va a ver quien la encuentre: tu teléfono y correo{' '}
+                <b>no</b> se publican. Escribí acá los datos con los que querés que te contacten.
               </p>
               {perdidaState.error && <p className="text-sm text-red-700">{perdidaState.error}</p>}
               <div className="flex gap-2">
                 <button type="submit" className="btn-primary" disabled={perdidaPending}>
                   {perdidaPending ? 'Publicando…' : 'Publicar como perdida'}
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => setMostrarFormPerdida(false)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setMostrarFormPerdida(false)}
+                >
                   Cancelar
                 </button>
               </div>
@@ -84,7 +102,9 @@ export function PetAcciones({
         >
           {borrarPending ? 'Borrando…' : 'Borrar mascota'}
         </button>
-        {borrarState.error && <span className="ml-2 text-sm text-red-700">{borrarState.error}</span>}
+        {borrarState.error && (
+          <span className="ml-2 text-sm text-red-700">{borrarState.error}</span>
+        )}
       </form>
     </div>
   )

@@ -136,7 +136,12 @@ export default async function DashboardPage() {
                   </div>
 
                   <div className="mt-4 grid gap-4 border-t border-stone-100 pt-4 sm:grid-cols-2">
-                    <PetAcciones petId={m.id} nombre={m.name} isLost={m.isLost} />
+                    <PetAcciones
+                      petId={m.id}
+                      nombre={m.name}
+                      isLost={m.isLost}
+                      telefono={usuario.phone}
+                    />
 
                     <details className="rounded-lg border border-stone-200 p-3">
                       <summary className="cursor-pointer text-sm font-medium text-stone-700">

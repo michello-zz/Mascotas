@@ -1,10 +1,19 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { ESPECIE_EMOJI, ESPECIE_LABEL, fmtFecha, idMascota, linkWhatsapp, nombreCompleto, tiempoRelativo } from '@/lib/labels'
+import {
+  ESPECIE_EMOJI,
+  ESPECIE_LABEL,
+  fmtFecha,
+  idMascota,
+  nombreCompleto,
+  tiempoRelativo,
+} from '@/lib/labels'
 
 export const dynamic = 'force-dynamic'
 
+// Ficha pública: NO expone teléfono ni correo del dueño.
+// El único canal de contacto es el comentario que el dueño escribe al reportar la pérdida.
 export default async function FichaMascota({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const num = parseInt(id.replace(/[^0-9]/g, ''), 10)
@@ -13,17 +22,14 @@ export default async function FichaMascota({ params }: { params: Promise<{ id: s
   const pet = await prisma.pet.findUnique({
     where: { id: num },
     include: {
-      owner: {
-        select: { firstName: true, lastName: true, name: true, phone: true, email: true, comments: true },
-      },
+      // OJO: sólo lo mínimo para identificar al dueño. Sin phone, sin email.
+      owner: { select: { firstName: true, lastName: true, name: true } },
     },
   })
 
   if (!pet) notFound()
 
   const duenio = nombreCompleto(pet.owner)
-  const tel = pet.owner.phone
-  const texto = `Hola ${duenio}! Encontré a ${pet.name} (ID ${idMascota(pet.id)}) en Mascotas. `
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -55,7 +61,9 @@ export default async function FichaMascota({ params }: { params: Promise<{ id: s
           <div className="space-y-5">
             {pet.isLost && (
               <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
-                <h2 className="font-semibold text-red-900">Está perdida — cómo contactar al dueño</h2>
+                <h2 className="font-semibold text-red-900">
+                  Está perdida — instrucciones del dueño
+                </h2>
                 <p className="mt-1 whitespace-pre-line text-red-900">{pet.lostComment || '—'}</p>
                 {pet.lostAt && (
                   <p className="mt-2 text-xs text-red-700">
@@ -70,7 +78,9 @@ export default async function FichaMascota({ params }: { params: Promise<{ id: s
               <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
                 <div className="flex justify-between gap-4 border-b border-stone-100 py-1">
                   <dt className="text-sm text-stone-500">ID</dt>
-                  <dd className="font-mono text-sm font-medium text-stone-800">{idMascota(pet.id)}</dd>
+                  <dd className="font-mono text-sm font-medium text-stone-800">
+                    {idMascota(pet.id)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4 border-b border-stone-100 py-1">
                   <dt className="text-sm text-stone-500">Nombre</dt>
@@ -95,36 +105,12 @@ export default async function FichaMascota({ params }: { params: Promise<{ id: s
               )}
             </div>
 
-            <div>
-              <h2 className="mb-2 font-semibold text-stone-800">Contacto del dueño</h2>
-              {tel ? (
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={linkWhatsapp(tel, texto)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary"
-                  >
-                    WhatsApp {tel}
-                  </a>
-                  <a href={`tel:${tel}`} className="btn-secondary">
-                    Llamar
-                  </a>
-                </div>
-              ) : (
-                <p className="text-sm text-stone-500">
-                  El dueño no cargó un teléfono. Probá con el correo.
-                </p>
-              )}
-              {pet.owner.email && (
-                <p className="mt-2 text-sm text-stone-500">
-                  Correo: <span className="text-stone-700">{pet.owner.email}</span>
-                </p>
-              )}
-              {pet.owner.comments && (
-                <p className="mt-2 text-sm text-stone-600">{pet.owner.comments}</p>
-              )}
-            </div>
+            <p className="rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-500">
+              🔒 Por privacidad no publicamos el teléfono ni el correo del dueño. Si encontraste a{' '}
+              <b>{pet.name}</b>, seguí las instrucciones de contacto que figuran arriba (las escribe
+              el propio dueño al reportarla) o avisá al administrador del sitio con el ID{' '}
+              <b className="font-mono">{idMascota(pet.id)}</b>.
+            </p>
           </div>
 
           <aside className="space-y-3">
@@ -136,9 +122,7 @@ export default async function FichaMascota({ params }: { params: Promise<{ id: s
                 alt={`Código QR de ${pet.name}`}
                 className="mx-auto h-40 w-40"
               />
-              <p className="mt-2 text-xs text-stone-500">
-                Quien lo escanee llega a esta página.
-              </p>
+              <p className="mt-2 text-xs text-stone-500">Quien lo escanee llega a esta página.</p>
               <a href={`/mascotas/${pet.id}/qr?descargar=1`} className="btn-secondary mt-3 w-full">
                 Descargar PNG
               </a>
