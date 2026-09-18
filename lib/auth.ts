@@ -11,7 +11,7 @@ function adminsConfigurados() {
 }
 
 export const auth = betterAuth({
-  appName: 'Mascotas',
+  appName: 'Busca Mascotas',
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
 
   emailAndPassword: {

@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth'
 import { SignOutButton } from '@/components/SignOutButton'
 
 export const metadata: Metadata = {
-  title: 'Mascotas — búsqueda de mascotas perdidas',
+  title: 'Busca Mascotas — búsqueda de mascotas perdidas',
   description:
     'Sitio para gestionar la búsqueda de mascotas perdidas. Cada mascota tiene un ID y un código QR que lleva a los datos de su dueño.',
 }
@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="border-b border-stone-200 bg-white">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-800">
-              <span aria-hidden>🐾</span> Mascotas
+              <span aria-hidden>🐾</span> Busca Mascotas
             </Link>
 
             <nav className="flex flex-wrap items-center gap-3 text-sm">
@@ -78,8 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {children}
 
         <footer className="mt-16 border-t border-stone-200 bg-white py-8 text-center text-sm text-stone-500">
-          Mascotas · gestión de búsqueda de mascotas perdidas 🇺🇾
-        </footer>
+          Busca Mascotas · gestión de búsqueda de mascotas perdidas 🇺🇾        </footer>
       </body>
     </html>
   )
