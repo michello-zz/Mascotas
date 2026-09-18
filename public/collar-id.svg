@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" role="img" aria-label="Collar con chapa identificatoria y código QR">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0fdfa"/>
+      <stop offset="1" stop-color="#ccfbf1"/>
+    </linearGradient>
+    <linearGradient id="chapa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e7e5e4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="480" height="480" rx="40" fill="url(#fondo)"/>
+
+  <!-- Correa del collar -->
+  <path d="M104 74 C 116 190, 190 216, 240 216 C 290 216, 364 190, 376 74"
+        fill="none" stroke="#0f766e" stroke-width="28" stroke-linecap="round"/>
+  <path d="M104 74 C 116 190, 190 216, 240 216 C 290 216, 364 190, 376 74"
+        fill="none" stroke="#134e4a" stroke-width="4" stroke-dasharray="10 16" opacity="0.35"/>
+
+  <!-- Argolla -->
+  <circle cx="240" cy="232" r="15" fill="none" stroke="#78716c" stroke-width="9"/>
+
+  <!-- Chapa -->
+  <rect x="146" y="248" width="188" height="196" rx="26" fill="url(#chapa)" stroke="#d6d3d1" stroke-width="3"/>
+
+  <!-- QR -->
+  <g fill="#1c1917">
+    <!-- marcadores de esquina -->
+    <rect x="170" y="272" width="38" height="38" rx="6"/>
+    <rect x="182" y="284" width="14" height="14" rx="2" fill="#ffffff"/>
+    <rect x="272" y="272" width="38" height="38" rx="6"/>
+    <rect x="284" y="284" width="14" height="14" rx="2" fill="#ffffff"/>
+    <rect x="170" y="324" width="38" height="38" rx="6"/>
+    <rect x="182" y="336" width="14" height="14" rx="2" fill="#ffffff"/>
+    <!-- datos -->
+    <rect x="222" y="272" width="14" height="14"/>
+    <rect x="222" y="300" width="14" height="14"/>
+    <rect x="250" y="286" width="14" height="14"/>
+    <rect x="222" y="328" width="14" height="14"/>
+    <rect x="250" y="314" width="14" height="14"/>
+    <rect x="278" y="328" width="14" height="14"/>
+    <rect x="306" y="300" width="14" height="14"/>
+    <rect x="306" y="342" width="14" height="14"/>
+    <rect x="170" y="376" width="14" height="14"/>
+    <rect x="198" y="376" width="14" height="14"/>
+    <rect x="226" y="376" width="14" height="14"/>
+    <rect x="254" y="376" width="14" height="14"/>
+    <rect x="282" y="376" width="14" height="14"/>
+    <rect x="306" y="376" width="14" height="14"/>
+  </g>
+
+  <!-- ID -->
+  <text x="240" y="424" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+        font-size="21" font-weight="700" fill="#0f766e">M-000123</text>
+</svg>
