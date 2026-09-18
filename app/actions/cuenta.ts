@@ -1,15 +1,9 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { MAX_MASCOTAS, type ActionState } from '@/lib/constantes'
-
-async function usuarioActual() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  return session?.user ?? null
-}
+import { usuarioActual } from '@/lib/sesion'
+import { type ActionState } from '@/lib/constantes'
 
 function txt(fd: FormData, k: string) {
   const v = fd.get(k)
@@ -70,6 +64,39 @@ async function requerirAdmin() {
   return { error: null, user }
 }
 
+/* ─────────────── Aprobar / rechazar dueños ─────────────── */
+
+export async function aprobarUsuario(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { error, user } = await requerirAdmin()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
+
+  const id = txt(formData, 'userId')
+  if (!id) return { error: 'Falta el usuario.' }
+
+  await prisma.user.update({
+    where: { id },
+    data: { approved: true, approvedAt: new Date() },
+  })
+
+  revalidatePath('/admin')
+  return { ok: true, mensaje: 'Dueño aprobado.' }
+}
+
+export async function rechazarUsuario(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { error, user } = await requerirAdmin()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
+
+  const id = txt(formData, 'userId')
+  if (!id) return { error: 'Falta el usuario.' }
+  if (id === user.id) return { error: 'No podés rechazarte a vos mismo.' }
+
+  await prisma.user.delete({ where: { id } }) // cascade: sesiones y mascotas
+  revalidatePath('/admin')
+  return { ok: true, mensaje: 'Solicitud rechazada y cuenta eliminada.' }
+}
+
+/* ─────────────── Otros (solo ADMIN) ─────────────── */
+
 export async function cambiarRol(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { error, user } = await requerirAdmin()
   if (error || !user) return { error: error ?? 'Sin permisos.' }
@@ -79,7 +106,12 @@ export async function cambiarRol(_prev: ActionState, formData: FormData): Promis
   if (!id || !rol || !['DUENO', 'ADMIN'].includes(rol)) return { error: 'Datos incompletos.' }
   if (id === user.id) return { error: 'No podés cambiarte el rol a vos mismo.' }
 
-  await prisma.user.update({ where: { id }, data: { role: rol as 'DUENO' | 'ADMIN' } })
+  // Un ADMIN siempre está aprobado.
+  await prisma.user.update({
+    where: { id },
+    data: { role: rol as 'DUENO' | 'ADMIN', ...(rol === 'ADMIN' ? { approved: true, approvedAt: new Date() } : {}) },
+  })
+
   revalidatePath('/admin')
   return { ok: true, mensaje: 'Rol actualizado.' }
 }
@@ -92,7 +124,7 @@ export async function borrarUsuario(_prev: ActionState, formData: FormData): Pro
   if (!id) return { error: 'Falta el usuario.' }
   if (id === user.id) return { error: 'No podés borrar tu propia cuenta.' }
 
-  await prisma.user.delete({ where: { id } }) // borra en cascada sus mascotas y sesiones
+  await prisma.user.delete({ where: { id } })
   revalidatePath('/admin')
   return { ok: true, mensaje: 'Usuario y sus mascotas eliminados.' }
 }

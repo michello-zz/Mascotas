@@ -1,10 +1,48 @@
 'use client'
 
 import { useActionState } from 'react'
-import { borrarMascotaAdmin, borrarUsuario, cambiarRol } from '@/app/actions/cuenta'
+import { borrarMascotaAdmin, borrarUsuario, cambiarRol, aprobarUsuario, rechazarUsuario } from '@/app/actions/cuenta'
 import type { ActionState } from '@/lib/constantes'
 
 const inicial: ActionState = {}
+
+export function Aprobar({ userId, nombre }: { userId: string; nombre: string }) {
+  const [state, action, pending] = useActionState(aprobarUsuario, inicial)
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="userId" value={userId} />
+      <button type="submit" className="btn-primary" disabled={pending}>
+        {pending ? '…' : '✓ Aceptar'}
+      </button>
+      {state.error && <span className="text-xs text-red-700">{state.error}</span>}
+      {state.ok && <span className="text-xs text-green-700">aprobado</span>}
+    </form>
+  )
+}
+
+export function Rechazar({ userId, nombre }: { userId: string; nombre: string }) {
+  const [state, action, pending] = useActionState(rechazarUsuario, inicial)
+
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (!confirm(`¿Rechazar la solicitud de ${nombre}? Se borra la cuenta.`)) e.preventDefault()
+      }}
+    >
+      <input type="hidden" name="userId" value={userId} />
+      <button
+        type="submit"
+        className="btn border border-red-200 bg-white text-red-700 hover:bg-red-50"
+        disabled={pending}
+      >
+        {pending ? '…' : 'Rechazar'}
+      </button>
+      {state.error && <span className="text-xs text-red-700">{state.error}</span>}
+    </form>
+  )
+}
 
 export function CambiarRol({ userId, rol }: { userId: string; rol: string }) {
   const [state, action, pending] = useActionState(cambiarRol, inicial)

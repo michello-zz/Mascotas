@@ -3,8 +3,14 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { BorrarMascotaAdmin, BorrarUsuario, CambiarRol } from '@/components/AdminAcciones'
-import { ESPECIE_LABEL, ROL_LABEL, fmtFecha, idMascota, nombreCompleto } from '@/lib/labels'
+import {
+  Aprobar,
+  BorrarMascotaAdmin,
+  BorrarUsuario,
+  CambiarRol,
+  Rechazar,
+} from '@/components/AdminAcciones'
+import { ESPECIE_LABEL, ROL_LABEL, fmtFecha, idMascota, nombreCompleto, tiempoRelativo } from '@/lib/labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,9 +29,9 @@ export default async function AdminPage() {
     )
   }
 
-  const [usuarios, mascotas, totales] = await Promise.all([
+  const [usuarios, mascotas] = await Promise.all([
     prisma.user.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ approved: 'asc' }, { createdAt: 'asc' }],
       select: {
         id: true,
         firstName: true,
@@ -35,6 +41,7 @@ export default async function AdminPage() {
         phone: true,
         comments: true,
         role: true,
+        approved: true,
         createdAt: true,
         _count: { select: { pets: true } },
       },
@@ -45,43 +52,78 @@ export default async function AdminPage() {
         owner: { select: { firstName: true, lastName: true, name: true, email: true, phone: true } },
       },
     }),
-    prisma.pet
-      .aggregate({ _count: { _all: true } })
-      .then(async () => ({
-        perdidas: await prisma.pet.count({ where: { isLost: true } }),
-        encontradas: await prisma.pet.count({ where: { foundAt: { not: null } } }),
-      }))
-      .catch(() => ({ perdidas: 0, encontradas: 0 })),
   ])
+
+  const pendientes = usuarios.filter((u) => !u.approved && u.role !== 'ADMIN')
+  const activos = usuarios.filter((u) => u.approved || u.role === 'ADMIN')
+  const perdidas = mascotas.filter((m) => m.isLost).length
+  const encontradas = mascotas.filter((m) => m.foundAt).length
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-bold text-stone-900">Administración</h1>
       <p className="mt-1 mb-6 text-stone-600">
-        Acceso total: usuarios, mascotas y estados. Las mascotas se identifican por su ID numérico.
+        Acceso total: aprobación de dueños, usuarios, mascotas y estados.
       </p>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-4">
         <div className="card p-4">
-          <div className="text-2xl font-bold text-stone-800">{usuarios.length}</div>
-          <div className="text-sm text-stone-500">usuarios</div>
+          <div className="text-2xl font-bold text-amber-700">{pendientes.length}</div>
+          <div className="text-sm text-stone-500">esperando aprobación</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xl font-bold text-stone-800">{mascotas.length}</div>
-          <div className="text-sm text-stone-500">mascotas</div>
+          <div className="text-2xl font-bold text-stone-800">{activos.length}</div>
+          <div className="text-sm text-stone-500">dueños activos</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xl font-bold text-red-700">{totales.perdidas}</div>
+          <div className="text-2xl font-bold text-red-700">{perdidas}</div>
           <div className="text-sm text-stone-500">perdidas ahora</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xl font-bold text-green-700">{totales.encontradas}</div>
+          <div className="text-2xl font-bold text-green-700">{encontradas}</div>
           <div className="text-sm text-stone-500">encontradas</div>
         </div>
       </div>
 
+      {/* Solicitudes pendientes */}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold text-stone-800">Usuarios ({usuarios.length})</h2>
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">
+          Solicitudes pendientes ({pendientes.length})
+        </h2>
+
+        {pendientes.length === 0 ? (
+          <div className="card p-6 text-center text-stone-500">
+            No hay solicitudes esperando. 🎉
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {pendientes.map((u) => (
+              <li key={u.id} className="card flex flex-wrap items-center gap-4 border-l-4 border-amber-400 p-4">
+                <div className="min-w-56 flex-1">
+                  <div className="font-semibold text-stone-800">{nombreCompleto(u)}</div>
+                  <div className="text-sm text-stone-600">
+                    {u.email} · {u.phone ?? 'sin teléfono'}
+                  </div>
+                  {u.comments && <div className="text-xs text-stone-500">{u.comments}</div>}
+                  <div className="text-xs text-stone-400">
+                    se registró {tiempoRelativo(u.createdAt)} ({fmtFecha(u.createdAt)})
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Aprobar userId={u.id} nombre={nombreCompleto(u)} />
+                  <Rechazar userId={u.id} nombre={nombreCompleto(u)} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Usuarios */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">
+          Usuarios activos ({activos.length})
+        </h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -96,7 +138,7 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) => (
+              {activos.map((u) => (
                 <tr key={u.id} className="border-b border-stone-100 align-top">
                   <td className="py-3 pr-3">
                     <div className="font-medium text-stone-800">{nombreCompleto(u)}</div>
@@ -108,9 +150,7 @@ export default async function AdminPage() {
                   <td className="py-3 pr-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        u.role === 'ADMIN'
-                          ? 'bg-teal-100 text-teal-800'
-                          : 'bg-stone-100 text-stone-600'
+                        u.role === 'ADMIN' ? 'bg-teal-100 text-teal-800' : 'bg-stone-100 text-stone-600'
                       }`}
                     >
                       {ROL_LABEL[u.role] ?? u.role}
@@ -130,6 +170,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
+      {/* Mascotas */}
       <section>
         <h2 className="mb-3 text-lg font-semibold text-stone-800">Mascotas ({mascotas.length})</h2>
         <div className="overflow-x-auto">
@@ -145,6 +186,13 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
+              {mascotas.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-stone-500">
+                    Todavía no hay mascotas cargadas.
+                  </td>
+                </tr>
+              )}
               {mascotas.map((m) => (
                 <tr key={m.id} className="border-b border-stone-100 align-top">
                   <td className="py-3 pr-3 font-mono text-stone-600">{idMascota(m.id)}</td>

@@ -35,6 +35,10 @@ model User {
 
   role Role @default(DUENO)
 
+  /// Un dueño nuevo queda pendiente hasta que el administrador lo acepte
+  approved   Boolean   @default(false)
+  approvedAt DateTime?
+
   sessions Session[]
   accounts Account[]
   pets     Pet[]

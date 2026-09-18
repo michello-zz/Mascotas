@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { usuarioAprobado } from '@/lib/sesion'
 import { prisma } from '@/lib/prisma'
 import { PetForm } from '@/components/PetForm'
 import { MAX_MASCOTAS } from '@/lib/constantes'
@@ -11,7 +12,10 @@ export default async function NuevaMascotaPage() {
   const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
   if (!session) redirect('/login?next=/mascotas/nueva')
 
-  const cantidad = await prisma.pet.count({ where: { ownerId: session.user.id } })
+  const aprobado = await usuarioAprobado()
+  if (!aprobado) redirect('/pendiente')
+
+  const cantidad = await prisma.pet.count({ where: { ownerId: aprobado.id } })
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">

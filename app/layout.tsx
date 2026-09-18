@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
-  const esAdmin = session?.user?.role === 'ADMIN'
+  const u = session?.user as unknown as { role?: string; approved?: boolean } | undefined
+  const esAdmin = u?.role === 'ADMIN'
+  const pendiente = !!u && !u.approved && !esAdmin
 
   return (
     <html lang="es">
@@ -31,12 +33,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
               {session ? (
                 <>
-                  <Link
-                    href="/dashboard"
-                    className="rounded-lg bg-teal-700 px-3 py-2 font-semibold text-white hover:bg-teal-800"
-                  >
-                    Mi panel
-                  </Link>
+                  {pendiente ? (
+                    <Link
+                      href="/pendiente"
+                      className="rounded-lg bg-amber-500 px-3 py-2 font-semibold text-white hover:bg-amber-600"
+                    >
+                      Pendiente de aprobación
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/dashboard"
+                      className="rounded-lg bg-teal-700 px-3 py-2 font-semibold text-white hover:bg-teal-800"
+                    >
+                      Mi panel
+                    </Link>
+                  )}
                   {esAdmin && (
                     <Link
                       href="/admin"

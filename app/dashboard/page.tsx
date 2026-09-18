@@ -25,9 +25,12 @@ export default async function DashboardPage() {
       phone: true,
       comments: true,
       role: true,
+      approved: true,
     },
   })
   if (!usuario) redirect('/login')
+  // Los dueños nuevos necesitan el visto bueno del administrador.
+  if (!usuario.approved && usuario.role !== 'ADMIN') redirect('/pendiente')
 
   const mascotas = await prisma.pet.findMany({
     where: { ownerId: usuario.id },

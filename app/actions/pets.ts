@@ -1,18 +1,25 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { usuarioActual, type UsuarioSesion } from '@/lib/sesion'
 import { MAX_MASCOTAS, ESPECIES, type ActionState } from '@/lib/constantes'
 
 const ESPECIES_VALIDAS = ESPECIES
 type Especie = (typeof ESPECIES)[number]
 
-async function usuarioActual() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  return session?.user ?? null
+/** Usuario logueado y aprobado por el administrador (el admin siempre pasa). */
+async function requerido(): Promise<{ user: UsuarioSesion | null; error?: string }> {
+  const u = await usuarioActual()
+  if (!u) return { user: null, error: 'Necesitás iniciar sesión.' }
+  if (!u.approved && u.role !== 'ADMIN') {
+    return {
+      user: null,
+      error: 'Tu cuenta todavía no fue aprobada por el administrador.',
+    }
+  }
+  return { user: u }
 }
 
 function txt(fd: FormData, k: string) {
@@ -44,11 +51,21 @@ function refrescar(id?: number) {
   }
 }
 
+/** Verifica que la mascota exista y que el usuario pueda tocarla. */
+async function mascotaPropia(id: number, user: UsuarioSesion) {
+  const pet = await prisma.pet.findUnique({ where: { id }, select: { ownerId: true } })
+  if (!pet) return { error: 'Esa mascota no existe.' as const }
+  if (pet.ownerId !== user.id && user.role !== 'ADMIN') {
+    return { error: 'Solo el dueño puede hacer esto.' as const }
+  }
+  return { error: null }
+}
+
 /* ─────────────── Publicar una mascota (máx. 5 por dueño) ─────────────── */
 
 export async function crearMascota(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await usuarioActual()
-  if (!user) return { error: 'Necesitás iniciar sesión.' }
+  const { user, error } = await requerido()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
 
   const nombre = txt(formData, 'nombre')
   if (!nombre) return { error: 'Poné el nombre de la mascota.' }
@@ -84,17 +101,14 @@ export async function crearMascota(_prev: ActionState, formData: FormData): Prom
 /* ─────────────── Editar datos de una mascota ─────────────── */
 
 export async function editarMascota(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await usuarioActual()
-  if (!user) return { error: 'Necesitás iniciar sesión.' }
+  const { user, error } = await requerido()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
 
   const id = entero(formData, 'id')
   if (!id) return { error: 'Falta la mascota.' }
 
-  const pet = await prisma.pet.findUnique({ where: { id }, select: { ownerId: true } })
-  if (!pet) return { error: 'Esa mascota no existe.' }
-  if (pet.ownerId !== user.id && user.role !== 'ADMIN') {
-    return { error: 'Solo el dueño (o un administrador) puede editarla.' }
-  }
+  const check = await mascotaPropia(id, user)
+  if (check.error) return { error: check.error }
 
   const nombre = txt(formData, 'nombre')
   if (!nombre) return { error: 'Poné el nombre de la mascota.' }
@@ -114,17 +128,14 @@ export async function editarMascota(_prev: ActionState, formData: FormData): Pro
 /* ─────────────── Marcar como perdida ─────────────── */
 
 export async function marcarPerdida(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await usuarioActual()
-  if (!user) return { error: 'Necesitás iniciar sesión.' }
+  const { user, error } = await requerido()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
 
   const id = entero(formData, 'id')
   if (!id) return { error: 'Falta la mascota.' }
 
-  const pet = await prisma.pet.findUnique({ where: { id }, select: { ownerId: true } })
-  if (!pet) return { error: 'Esa mascota no existe.' }
-  if (pet.ownerId !== user.id && user.role !== 'ADMIN') {
-    return { error: 'Solo el dueño puede marcar esta mascota como perdida.' }
-  }
+  const check = await mascotaPropia(id, user)
+  if (check.error) return { error: check.error }
 
   const comentario = txt(formData, 'lostComment')
   if (!comentario) {
@@ -143,17 +154,14 @@ export async function marcarPerdida(_prev: ActionState, formData: FormData): Pro
 /* ─────────────── Marcar como encontrada (sale del listado) ─────────────── */
 
 export async function marcarEncontrada(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await usuarioActual()
-  if (!user) return { error: 'Necesitás iniciar sesión.' }
+  const { user, error } = await requerido()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
 
   const id = entero(formData, 'id')
   if (!id) return { error: 'Falta la mascota.' }
 
-  const pet = await prisma.pet.findUnique({ where: { id }, select: { ownerId: true } })
-  if (!pet) return { error: 'Esa mascota no existe.' }
-  if (pet.ownerId !== user.id && user.role !== 'ADMIN') {
-    return { error: 'Solo el dueño puede marcarla como encontrada.' }
-  }
+  const check = await mascotaPropia(id, user)
+  if (check.error) return { error: check.error }
 
   await prisma.pet.update({
     where: { id },
@@ -167,17 +175,14 @@ export async function marcarEncontrada(_prev: ActionState, formData: FormData): 
 /* ─────────────── Borrar una mascota ─────────────── */
 
 export async function borrarMascota(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await usuarioActual()
-  if (!user) return { error: 'Necesitás iniciar sesión.' }
+  const { user, error } = await requerido()
+  if (error || !user) return { error: error ?? 'Sin permisos.' }
 
   const id = entero(formData, 'id')
   if (!id) return { error: 'Falta la mascota.' }
 
-  const pet = await prisma.pet.findUnique({ where: { id }, select: { ownerId: true } })
-  if (!pet) return { error: 'Esa mascota no existe.' }
-  if (pet.ownerId !== user.id && user.role !== 'ADMIN') {
-    return { error: 'Solo el dueño (o un administrador) puede borrarla.' }
-  }
+  const check = await mascotaPropia(id, user)
+  if (check.error) return { error: check.error }
 
   await prisma.pet.delete({ where: { id } })
   refrescar()
