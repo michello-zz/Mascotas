@@ -1,5 +1,5 @@
 {
-  "name": "nuevo-sitio",
+  "name": "mascotas",
   "version": "0.1.0",
   "description": "Next.js (App Router) + TypeScript + Prisma + PostgreSQL, pensado para deploy en Vercel.",
   "main": "index.js",
