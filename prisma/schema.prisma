@@ -1,6 +1,9 @@
-// Prisma schema — Mascotas (sitio de búsqueda de mascotas perdidas)
+// Prisma schema — Mascotas: gestión de búsqueda de mascotas perdidas
 // Vercel + PostgreSQL · Prisma 7
-// Docs: https://pris.ly/d/prisma-schema
+//
+// Roles: DUENO (ve solo lo suyo) y ADMIN (acceso total).
+// Datos del dueño: Nombre, Apellido, Correo, Teléfono, Comentarios.
+// Datos de la mascota: ID (numérico autoincremental), Nombre, Especie, Dueño, Comentarios.
 
 generator client {
   provider = "prisma-client"
@@ -12,28 +15,29 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Auth (Better Auth) — no cambiar los nombres/campos base
+// Usuarios (Better Auth) + datos del dueño / administrador
 // ─────────────────────────────────────────────────────────────
 
 model User {
   id            String    @id
-  name          String
+  name          String // requerido por Better Auth (se arma con Nombre + Apellido)
   email         String
   emailVerified Boolean   @default(false)
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Perfil del anunciante
-  phone      String?
-  city       String?
-  department String?
-  role       Role      @default(USER)
+  // Datos del dueño
+  firstName String?
+  lastName  String?
+  phone     String?
+  comments  String?
 
-  sessions  Session[]
-  accounts  Account[]
-  pets      Pet[]
-  sightings Sighting[]
+  role Role @default(DUENO)
+
+  sessions Session[]
+  accounts Account[]
+  pets     Pet[]
 
   @@unique([email])
   @@map("user")
@@ -88,104 +92,37 @@ model Verification {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Dominio: mascotas perdidas
+// Mascotas
 // ─────────────────────────────────────────────────────────────
 
 model Pet {
-  id          String    @id @default(cuid())
-  name        String
-  species     Species
-  breed       String?
-  sex         Sex       @default(DESCONOCIDO)
-  size        Size?
-  color       String?
-  ageMonths   Int?
-  description String?
-  hasChip     Boolean   @default(false)
-  chipNumber  String?
-  sterilized  Boolean?
-
-  status PetStatus @default(PERDIDA)
-
-  // Última ubicación conocida / dónde se perdió
-  lastSeenAt DateTime?
-  address    String?
-  city       String?
-  department String?
-  lat        Float?
-  lng        Float?
-
-  // Contacto para avisos
-  contactPhone    String?
-  contactEmail    String?
-  contactWhatsapp String?
-  reward          String?
+  /// Número único, autoincremental: es el que va en el QR y el que usa el sitio.
+  id       Int     @id @default(autoincrement())
+  name     String
+  species  Species
+  comments String?
 
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  photos    PetPhoto[]
-  sightings Sighting[]
+  // Estado de búsqueda
+  /// true = está perdida y aparece en el listado público
+  isLost      Boolean   @default(false)
+  lostAt      DateTime?
+  /// Comentario de cómo contactarse, que escribe el dueño al marcarla perdida
+  lostComment String?
+  foundAt     DateTime?
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([status, species])
-  @@index([department, city])
   @@index([ownerId])
+  @@index([isLost])
   @@map("pet")
 }
 
-model PetPhoto {
-  id        String   @id @default(cuid())
-  url       String
-  isMain    Boolean  @default(false)
-  sortOrder Int      @default(0)
-  petId     String
-  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@index([petId])
-  @@map("pet_photo")
-}
-
-/// Avistamiento: alguien vio a la mascota y deja el dato
-model Sighting {
-  id         String  @id @default(cuid())
-  petId      String
-  pet        Pet     @relation(fields: [petId], references: [id], onDelete: Cascade)
-  reporterId String?
-  reporter   User?   @relation(fields: [reporterId], references: [id], onDelete: SetNull)
-
-  reporterName  String?
-  reporterPhone String?
-  description   String?
-  photoUrl      String?
-
-  seenAt     DateTime?
-  address    String?
-  city       String?
-  department String?
-  lat        Float?
-  lng        Float?
-
-  status    SightingStatus @default(PENDIENTE)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@index([petId])
-  @@index([status])
-  @@map("sighting")
-}
-
-// ─────────────────────────────────────────────────────────────
-// Enums
-// ─────────────────────────────────────────────────────────────
-
 enum Role {
-  USER
-  MODERADOR
+  DUENO
   ADMIN
 }
 
@@ -193,31 +130,4 @@ enum Species {
   PERRO
   GATO
   OTRO
-}
-
-enum Sex {
-  MACHO
-  HEMBRA
-  DESCONOCIDO
-}
-
-enum Size {
-  CHICO
-  MEDIANO
-  GRANDE
-}
-
-enum PetStatus {
-  PERDIDA
-  AVISTADA
-  ENCONTRADA
-  REUNIDA
-  EN_ADOPCION
-  ARCHIVADA
-}
-
-enum SightingStatus {
-  PENDIENTE
-  CONFIRMADO
-  DESCARTADO
 }

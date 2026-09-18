@@ -1,79 +1,76 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { PetCard } from '@/components/PetCard'
-import { SearchFilters } from '@/components/SearchFilters'
-import type { Prisma } from '@/generated/prisma/client'
+import { ESPECIE_LABEL } from '@/lib/labels'
 
 export const dynamic = 'force-dynamic'
 
-type SP = {
-  q?: string
-  especie?: string
-  departamento?: string
-  ciudad?: string
-  estado?: string
-}
+type SP = { especie?: string; q?: string }
 
-export default async function BuscarPage({ searchParams }: { searchParams: Promise<SP> }) {
+export default async function ListadoPerdidas({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams
+  const especie = sp.especie && ESPECIE_LABEL[sp.especie] ? sp.especie : undefined
+  const q = sp.q?.trim()
 
-  const where: Prisma.PetWhereInput = {}
-
-  if (sp.q) {
-    where.OR = [
-      { name: { contains: sp.q, mode: 'insensitive' } },
-      { breed: { contains: sp.q, mode: 'insensitive' } },
-      { color: { contains: sp.q, mode: 'insensitive' } },
-      { description: { contains: sp.q, mode: 'insensitive' } },
-    ]
-  }
-  if (sp.especie) where.species = sp.especie as never
-  if (sp.departamento) where.department = sp.departamento
-  if (sp.ciudad) where.city = sp.ciudad
-  if (sp.estado) {
-    where.status = sp.estado as never
-  } else {
-    // por defecto mostramos las que siguen abiertas
-    where.status = { in: ['PERDIDA', 'AVISTADA', 'ENCONTRADA'] }
+  const donde = {
+    isLost: true,
+    ...(especie ? { species: especie as never } : {}),
+    ...(q ? { name: { contains: q, mode: 'insensitive' as const } } : {}),
   }
 
-  const mascotas = await prisma.pet.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: 60,
-    include: { photos: { orderBy: { sortOrder: 'asc' }, take: 1 } },
+  const perdidas = await prisma.pet.findMany({
+    where: donde,
+    orderBy: { lostAt: 'desc' },
+    take: 100,
+    include: { owner: { select: { firstName: true, lastName: true, name: true } } },
   })
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">Buscar mascotas</h1>
-        <Link href="/mascotas/nueva" className="btn-primary">
-          Publicar
-        </Link>
-      </div>
-
-      <section className="mb-6">
-        <SearchFilters />
-      </section>
-
-      <p className="mb-3 text-sm text-stone-500">
-        {mascotas.length} {mascotas.length === 1 ? 'resultado' : 'resultados'}
+      <h1 className="text-2xl font-bold text-stone-900">Mascotas perdidas</h1>
+      <p className="mt-1 mb-5 text-stone-600">
+        Listado público. Hacé clic en una mascota para ver los datos de su dueño.
       </p>
 
-      {mascotas.length === 0 ? (
+      <form className="card mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label className="label" htmlFor="q">
+            Buscar por nombre
+          </label>
+          <input id="q" name="q" defaultValue={q ?? ''} className="input" placeholder="Ej: Luna" />
+        </div>
+        <div className="sm:w-48">
+          <label className="label" htmlFor="especie">
+            Especie
+          </label>
+          <select id="especie" name="especie" defaultValue={especie ?? ''} className="input">
+            <option value="">Todas</option>
+            {Object.entries(ESPECIE_LABEL).map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="btn-primary sm:w-32">
+          Filtrar
+        </button>
+        <Link href="/mascotas" className="btn-secondary sm:w-32">
+          Limpiar
+        </Link>
+      </form>
+
+      <p className="mb-3 text-sm text-stone-500">
+        {perdidas.length} {perdidas.length === 1 ? 'mascota perdida' : 'mascotas perdidas'}
+      </p>
+
+      {perdidas.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
-          No encontramos nada con esos filtros.
-          <br />
-          Probá sacar algún filtro o{' '}
-          <Link href="/mascotas" className="text-teal-700 hover:underline">
-            ver todas
-          </Link>
-          .
+          No hay mascotas perdidas con esos criterios.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mascotas.map((p) => (
+          {perdidas.map((p) => (
             <PetCard key={p.id} pet={p} />
           ))}
         </div>

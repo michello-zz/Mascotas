@@ -8,48 +8,55 @@ import { SignOutButton } from '@/components/SignOutButton'
 export const metadata: Metadata = {
   title: 'Mascotas — búsqueda de mascotas perdidas',
   description:
-    'Publicá tu mascota perdida, reportá avistamientos y ayudá a que vuelvan a casa. Uruguay.',
+    'Sitio para gestionar la búsqueda de mascotas perdidas. Cada mascota tiene un ID y un código QR que lleva a los datos de su dueño.',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
+  const esAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <html lang="es">
       <body className="min-h-screen">
         <header className="border-b border-stone-200 bg-white">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-800">
               <span aria-hidden>🐾</span> Mascotas
             </Link>
 
-            <nav className="flex items-center gap-3 text-sm">
+            <nav className="flex flex-wrap items-center gap-3 text-sm">
               <Link href="/mascotas" className="text-stone-600 hover:text-teal-700">
-                Buscar
+                Perdidas
               </Link>
+
               {session ? (
                 <>
                   <Link
-                    href="/mascotas/nueva"
+                    href="/dashboard"
                     className="rounded-lg bg-teal-700 px-3 py-2 font-semibold text-white hover:bg-teal-800"
                   >
-                    Publicar
-                  </Link>
-                  <Link href="/dashboard" className="text-stone-600 hover:text-teal-700">
                     Mi panel
                   </Link>
+                  {esAdmin && (
+                    <Link
+                      href="/admin"
+                      className="rounded-lg border border-teal-700 px-3 py-2 font-semibold text-teal-800 hover:bg-teal-50"
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <SignOutButton />
                 </>
               ) : (
                 <>
                   <Link
-                    href="/mascotas/nueva"
+                    href="/login?next=/dashboard"
                     className="rounded-lg bg-teal-700 px-3 py-2 font-semibold text-white hover:bg-teal-800"
                   >
-                    Publicar
-                  </Link>
-                  <Link href="/login" className="text-stone-600 hover:text-teal-700">
                     Ingresar
+                  </Link>
+                  <Link href="/login?modo=registro" className="text-stone-600 hover:text-teal-700">
+                    Crear cuenta
                   </Link>
                 </>
               )}
@@ -60,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {children}
 
         <footer className="mt-16 border-t border-stone-200 bg-white py-8 text-center text-sm text-stone-500">
-          Mascotas · hecho en Uruguay 🇺🇾
+          Mascotas · gestión de búsqueda de mascotas perdidas 🇺🇾
         </footer>
       </body>
     </html>

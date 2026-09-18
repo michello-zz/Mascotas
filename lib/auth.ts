@@ -2,29 +2,52 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from './prisma'
 
-// Proveedores sociales: se activan solo si están las credenciales en el entorno.
-const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {}
-
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  socialProviders.google = {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  }
-}
-
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-  socialProviders.github = {
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  }
+// Emails que se crean automáticamente como ADMIN (separados por coma).
+function adminsConfigurados() {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
 }
 
 export const auth = betterAuth({
-  appName: 'nuevo-sitio',
+  appName: 'Mascotas',
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
+
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
   },
-  socialProviders,
+
+  // Datos extra del dueño (los que pide la lógica del sitio)
+  user: {
+    additionalFields: {
+      firstName: { type: 'string', required: false },
+      lastName: { type: 'string', required: false },
+      phone: { type: 'string', required: false },
+      comments: { type: 'string', required: false },
+      // El rol NO se puede mandar desde el formulario: lo define el sistema.
+      role: { type: 'string', required: false, defaultValue: 'DUENO', input: false },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const admins = adminsConfigurados()
+          const email = String(user.email ?? '').toLowerCase()
+          const esAdmin = admins.includes(email)
+          return {
+            data: {
+              ...user,
+              role: esAdmin ? 'ADMIN' : 'DUENO',
+            },
+          }
+        },
+      },
+    },
+  },
 })
+
+export type RolUsuario = 'DUENO' | 'ADMIN'

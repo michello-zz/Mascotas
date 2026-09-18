@@ -1,4 +1,4 @@
-// Etiquetas legibles para los enums del schema.
+// Etiquetas y helpers de formato.
 
 export const ESPECIE_LABEL: Record<string, string> = {
   PERRO: 'Perro',
@@ -12,42 +12,27 @@ export const ESPECIE_EMOJI: Record<string, string> = {
   OTRO: '🐾',
 }
 
-export const SEXO_LABEL: Record<string, string> = {
-  MACHO: 'Macho',
-  HEMBRA: 'Hembra',
-  DESCONOCIDO: 'No sé',
-}
-
-export const TAMANO_LABEL: Record<string, string> = {
-  CHICO: 'Chico',
-  MEDIANO: 'Mediano',
-  GRANDE: 'Grande',
-}
-
-export const ESTADO_LABEL: Record<string, string> = {
-  PERDIDA: 'Perdida',
-  AVISTADA: 'Avistada',
-  ENCONTRADA: 'Encontrada',
-  REUNIDA: '¡Reunida con su familia!',
-  EN_ADOPCION: 'En adopción',
-  ARCHIVADA: 'Archivada',
-}
-
-export const ESTADO_ABIERTOS = ['PERDIDA', 'AVISTADA', 'ENCONTRADA'] as const
-
-export const ESTADO_COLOR: Record<string, string> = {
-  PERDIDA: 'bg-red-100 text-red-800',
-  AVISTADA: 'bg-amber-100 text-amber-800',
-  ENCONTRADA: 'bg-blue-100 text-blue-800',
-  REUNIDA: 'bg-green-100 text-green-800',
-  EN_ADOPCION: 'bg-purple-100 text-purple-800',
-  ARCHIVADA: 'bg-stone-200 text-stone-700',
+export const ROL_LABEL: Record<string, string> = {
+  DUENO: 'Dueño',
+  ADMIN: 'Administrador',
 }
 
 export function fmtFecha(d: Date | string | null | undefined) {
   if (!d) return '—'
   const date = typeof d === 'string' ? new Date(d) : d
   return date.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+export function fmtFechaHora(d: Date | string | null | undefined) {
+  if (!d) return '—'
+  const date = typeof d === 'string' ? new Date(d) : d
+  return date.toLocaleString('es-UY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 export function tiempoRelativo(d: Date | string) {
@@ -61,20 +46,27 @@ export function tiempoRelativo(d: Date | string) {
   return fmtFecha(date)
 }
 
-export function edadLegible(meses: number | null | undefined) {
-  if (!meses) return null
-  if (meses < 12) return `${meses} ${meses === 1 ? 'mes' : 'meses'}`
-  const anios = Math.floor(meses / 12)
-  const resto = meses % 12
-  return resto ? `${anios} ${anios === 1 ? 'año' : 'años'} y ${resto} meses` : `${anios} años`
-}
-
 export function soloDigitos(tel: string) {
   return tel.replace(/[^0-9]/g, '')
 }
 
-export function linkWhatsapp(tel: string, texto: string) {
+export function linkWhatsapp(tel: string, texto = '') {
   const num = soloDigitos(tel)
   const conPais = num.startsWith('598') ? num : `598${num.replace(/^0/, '')}`
-  return `https://wa.me/${conPais}?text=${encodeURIComponent(texto)}`
+  const q = texto ? `?text=${encodeURIComponent(texto)}` : ''
+  return `https://wa.me/${conPais}${q}`
+}
+
+/// Código legible para mostrar el ID: M-000123
+export function idMascota(id: number) {
+  return `M-${String(id).padStart(6, '0')}`
+}
+
+export function nombreCompleto(u: {
+  firstName?: string | null
+  lastName?: string | null
+  name?: string | null
+}) {
+  const armado = [u.firstName, u.lastName].filter(Boolean).join(' ').trim()
+  return armado || u.name || '—'
 }
