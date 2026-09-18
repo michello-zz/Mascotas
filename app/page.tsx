@@ -23,13 +23,15 @@ export default async function Home() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <section className="mb-10 grid items-center gap-8 lg:grid-cols-2">
-        {/* Imagen: el collar con la identificación. Se reemplaza por la foto definitiva. */}
-        <div className="mx-auto w-full max-w-sm">
+        {/* Imagen: perro y gato con collares identificatorios + QR */}
+        <div className="mx-auto w-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/collar-id.svg"
-            alt="Collar con chapa identificatoria y código QR"
-            className="w-full"
+            src="/hero-collar.jpg"
+            width={1000}
+            height={545}
+            alt="Un perro y un gato con collares que llevan chapa identificatoria con código QR"
+            className="h-auto w-full rounded-2xl shadow-sm ring-1 ring-stone-200"
           />
         </div>
 
