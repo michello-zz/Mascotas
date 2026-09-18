@@ -9,3 +9,4 @@ next-env.d.ts
 
 # Prisma 7 genera el client aca (no versionar)
 /generated/prisma
+.env*

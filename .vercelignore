@@ -1,0 +1,4 @@
+# No subir secretos locales al deploy: en Vercel se usan las Environment Variables
+.env
+.env.local
+.env*.local
