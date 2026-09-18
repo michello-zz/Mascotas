@@ -31,8 +31,8 @@ openssl rand -base64 32
 
 1. Push del repo a GitHub e importar el proyecto en vercel.com.
 2. Variables de entorno en Vercel:
-   - `DATABASE_URL` → conexión **con pooler** (puerto 6543 en Neon)
-   - `DIRECT_URL` → conexión **directa** (puerto 5432), la usan las migraciones
+   - `DATABASE_URL` → conexión **pooled** (hostname con `-pooler`), la usa la app
+   - `DIRECT_URL` → conexión **directa** (hostname sin `-pooler`), la usan las migraciones
    - `BETTER_AUTH_SECRET` → el mismo valor generado
    - `BETTER_AUTH_URL` → `https://tu-proyecto.vercel.app`
 3. Build command: `prisma generate && next build` (ya está en `package.json`).
